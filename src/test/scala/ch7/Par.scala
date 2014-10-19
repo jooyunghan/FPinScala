@@ -64,16 +64,6 @@ object Par {
     println(1L.to(10000L).sum)
   }
 
-//  def sum(ints: IndexedSeq[Int]): Int =
-//    if (ints.size <= 1)
-//      ints.headOption getOrElse 0
-//    else {
-//      val (l, r) = ints.splitAt(ints.length / 2)
-//      val sumL: Par[Int] = Par.unit(sum(l))
-//      val sumR: Par[Int] = Par.unit(sum(r))
-//      Par.get(sumL) + Par.get(sumR)
-//
-
   def sum(ints: IndexedSeq[Int]): Par[Int] =
     if (ints.size <= 1)
       Par.unit(ints.headOption getOrElse 0)
