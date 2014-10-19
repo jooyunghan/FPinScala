@@ -49,6 +49,9 @@ object Par {
   def map2[A, B, C](a: Par[A], b: Par[B])(f: (A, B) => C): Par[C] =
     (es: ExecutorService) => MapFuture(a(es), b(es), f)
 
+  def map[A, B](a: Par[A])(f: A => B): Par[B] =
+    map2(a, unit(()))((a, _) => f(a))
+
   // marks a computation for concurrent evaluation by run
   def fork[A](a: => Par[A]): Par[A] =
     (es: ExecutorService) => es.submit(new Callable[A] {
@@ -58,6 +61,14 @@ object Par {
   def lazyUnit[A](a: => A): Par[A] = fork(unit(a))
 
   def asyncF[A, B](f: A => B): A => Par[B] = (a: A) => lazyUnit(f(a))
+
+  def sequence[A](ps: List[Par[A]]): Par[List[A]] =
+    ps.foldRight(unit(List.empty[A]))((a, b) => map2(a, b)(_ :: _))
+
+  def parMap[A, B](ps: List[A])(f: A => B): Par[List[B]] = {
+    val fbs: List[Par[B]] = ps.map(asyncF(f))
+    sequence(fbs)
+  }
 
   def run[A](es: ExecutorService)(a: Par[A]): A = a(es).get
 
