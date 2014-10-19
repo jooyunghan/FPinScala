@@ -13,10 +13,14 @@ object Par {
 
   private case class UnitFuture[A](get: A) extends Future[A] {
     def isDone = true
+
     def get(time: Long, unit: TimeUnit) = get
+
     def isCancelled = false
+
     def cancel(evenIfRunning: Boolean): Boolean = false
   }
+
   private case class MapFuture[A, B, C](a: Future[A], b: Future[B], f: (A, B) => C) extends Future[C] {
     var isDone: Boolean = false
 
@@ -51,12 +55,13 @@ object Par {
       def call = a(es).get
     })
 
-  def lazyUnit[A](a: =>A): Par[A] = fork(unit(a))
+  def lazyUnit[A](a: => A): Par[A] = fork(unit(a))
 
+  def asyncF[A, B](f: A => B): A => Par[B] = (a: A) => lazyUnit(f(a))
 
   def run[A](es: ExecutorService)(a: Par[A]): A = a(es).get
 
-  def run[A](es: ExecutorService, timeout: Long, unit:TimeUnit)(a: Par[A]): A =
+  def run[A](es: ExecutorService, timeout: Long, unit: TimeUnit)(a: Par[A]): A =
     a(es).get(timeout, unit)
 
   def main(args: Array[String]): Unit = {
