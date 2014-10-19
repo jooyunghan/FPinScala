@@ -70,14 +70,24 @@ object Par {
     sequence(fbs)
   }
 
+  def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] =
+    as.zip(as.map(asyncF(f))).foldRight(unit(List.empty[A]))({
+      case ((a, p), b) => map2(p, b)((p, b) => if (p) a :: b else b)
+    })
+
   def run[A](es: ExecutorService)(a: Par[A]): A = a(es).get
 
   def run[A](es: ExecutorService, timeout: Long, unit: TimeUnit)(a: Par[A]): A =
     a(es).get(timeout, unit)
 
   def main(args: Array[String]): Unit = {
-    println(run(Executors.newFixedThreadPool(2), 1, TimeUnit.MILLISECONDS)(sum(1.to(10000).toArray)))
-    println(1L.to(10000L).sum)
+    val es = Executors.newFixedThreadPool(10)
+    val result = run(es)(parFilter(1.to(10).toList)(x => {
+      print(".")
+      Thread.sleep(1000)
+      x % 2 == 0
+    }))
+    println(result)
   }
 
   def sum(ints: IndexedSeq[Int]): Par[Int] =
